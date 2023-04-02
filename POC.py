@@ -14,11 +14,16 @@ a = np.zeros(4).reshape(q.shape)
 a_prev = np.zeros(4).reshape(q.shape)
 W = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]])
 
-ks = 5
-kd = 1.005
+ks = 7
+kd = 0.5
 
 FPS = 120
 dt = 1/FPS
+
+framecount = 1
+
+sum_C = np.zeros((2, 1))
+sum_C_dot = np.zeros((2, 1))
 
 while not shouldClose:
     Q = np.array([[0, 50, 0, 50]]).T
@@ -45,7 +50,7 @@ while not shouldClose:
 
         left = J@W@JT
         right = -J_dot@q_dot.T -J@W@Q
-        damp = -ks*C-ks*C_dot
+        damp = -ks*C-kd*C_dot
 
         lam = np.linalg.solve(left, right+damp)
         Q = Q + JT@lam
@@ -60,6 +65,12 @@ while not shouldClose:
     q_dot += a*dt
     q += q_dot*dt
 
+    sum_C += C
+    sum_C_dot += C_dot
+
+    print(np.linalg.norm(sum_C/framecount),
+          np.linalg.norm(sum_C_dot/framecount))
+
     window.fill((0, 0, 0))
     pygame.draw.circle(window, (255, 0, 0), (q[0][0]*10+320, q[0][1]*10+240), 3)
     pygame.draw.circle(window, (255, 0, 0), (q[0][2]*10+320, q[0][3]*10+240), 3)
@@ -67,5 +78,7 @@ while not shouldClose:
     pygame.display.flip()
 
     clock.tick(FPS)
+
+    framecount += 1
 
 # 시발섹스
