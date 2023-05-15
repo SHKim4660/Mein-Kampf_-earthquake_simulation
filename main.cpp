@@ -1,10 +1,13 @@
+#include <SFML/Window/Keyboard.hpp>
+#include <SFML/Window/WindowStyle.hpp>
 #include <glbinding/gl/bitfield.h>
 #include <glbinding/gl/functions.h>
 #include <iostream>
 #include <glbinding/gl/gl.h>
 #include <glbinding/glbinding.h>
-#define __gl_h_
-#include <GLFW/glfw3.h>
+#include <glbinding/getProcAddress.h>
+#include <SFML/Window.hpp>
+#include <SFML/System.hpp>
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Sparse>
 #include <glm/glm.hpp>
@@ -18,12 +21,7 @@
 
 using namespace gl;
 using namespace glm;
-
-void framebuffer_size_callback(GLFWwindow *window,
-                               int width, int height)
-{
-    glViewport(0, 0, width, height);
-}
+using namespace sf;
 
 float vertices[] = {
     -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
@@ -76,20 +74,19 @@ unsigned int indices[36] = {
 
 int main()
 {
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "니얼굴", NULL, NULL);
-    if (window == NULL)
-    {
-        panik("Fatal: Failed to initialize window.\n");
-    }
-    glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    ContextSettings settings;
+    settings.majorVersion = 4;
+    settings.minorVersion = 3;
+    settings.depthBits = 24;
     
-    glbinding::initialize(glfwGetProcAddress);
-    glbinding::useContext(0);
+    Window window(VideoMode(WIDTH, HEIGHT), "your face", Style::Default, settings);
+    // window.setVerticalSyncEnabled(true);
+    window.setActive(true);
+
+    Clock clock;
+
+    glbinding::initialize(nullptr);
+    // glbinding::useContext(0);
 
     glEnable(GL_DEPTH_TEST);
 
@@ -119,10 +116,26 @@ int main()
 
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    while (!glfwWindowShouldClose(window))
+
+    bool running = true;
+    while (running)
     {
-        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-            glfwSetWindowShouldClose(window, true);
+        Event event;
+        while (window.pollEvent(event))
+        {
+            if (event.type == Event::Closed)
+                running = false;
+            else if (event.type == Event::KeyPressed)
+                switch (event.key.code)
+                {
+                case Keyboard::Escape:
+                    running = false;
+                    break;
+
+                default:
+                    break;
+                }
+        }
         
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -135,18 +148,25 @@ int main()
         view = translate(view, vec3(0.f, 0.f, -5.f));
         proj = perspective(radians(45.f), (float)WIDTH/HEIGHT, 0.1f, 100.0f);
 
-        model = rotate(model, (float)glfwGetTime(), {0.f, 1.f, 0.f});
-        model = rotate(model, (float)glfwGetTime(), {1.f, 0.f, 0.f});
+        // model = rotate(model, clock.getElapsedTime().asSeconds(), {0.f, 1.f, 0.f});
+        model = rotate(model, clock.getElapsedTime().asSeconds(), {1.f, 0.f, 0.f});
+        view = translate(view, {-3+clock.getElapsedTime().asSeconds()/2, 0.f, 0.f});
 
         glUniformMatrix4fv(2, 1, GL_FALSE, value_ptr(model));
         glUniformMatrix4fv(3, 1, GL_FALSE, value_ptr(view));
         glUniformMatrix4fv(4, 1, GL_FALSE, value_ptr(proj));
 
+        // for (int i=0;i<36*3;i+=5)
+        // {
+        //     vertices[i] += 0.01f;
+        // }
+
         glBindVertexArray(VAO);
+        // glNamedBufferSubData(VBO, 0, sizeof(vertices), vertices);
+        
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+        window.display();
     }
 
     terminate(0);

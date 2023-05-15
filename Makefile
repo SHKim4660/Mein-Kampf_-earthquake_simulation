@@ -2,7 +2,7 @@ bin := MCEQ
 
 c++ := c++
 c++flags := -Wall -Wpedantic -g -ggdb3 -std=c++17
-ldflags := -lglbinding -lglbinding-aux -lglfw
+ldflags := -lglbinding -lglbinding-aux -lsfml-system -lsfml-window
 
 objs := main.o utils.o shader.o
 

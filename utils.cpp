@@ -9,8 +9,6 @@
 
 void terminate(int status)
 {
-    glfwTerminate();
-
     exit(status);
 }
 
